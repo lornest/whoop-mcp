@@ -2,7 +2,7 @@
 WHOOP MCP Server
 
 An MCP server that provides access to WHOOP API v2 data including:
-- User profile information
+- User profile information including body measurements (height, weight, max HR)
 - Physiological cycles with recovery data
 - Sleep data and metrics
 - Workout data and activities
@@ -146,10 +146,10 @@ class WhoopAPIClient:
                 raise ValueError(f"Failed to connect to WHOOP API: {str(e)}")
 
     async def get_user_profile(self) -> dict:
-        """Get the authenticated user's profile information."""
+        """Get the authenticated user's body measurements (height, weight, max HR)."""
         return await self._make_request(
             "GET",
-            f"{self.base_url}/developer/v2/user/profile/basic"
+            f"{self.base_url}/developer/v2/user/measurement/body"
         )
 
     async def get_cycles(
@@ -424,9 +424,9 @@ def format_response(data: dict, formatter_func) -> str:
 @mcp.tool()
 async def get_user_profile() -> str:
     """
-    Get the authenticated WHOOP user's profile information.
+    Get the authenticated WHOOP user's body measurements.
 
-    Returns basic profile data including user ID and account details.
+    Returns height (meters), weight (kilograms), and max heart rate.
     """
     client = get_client()
     profile = await client.get_user_profile()

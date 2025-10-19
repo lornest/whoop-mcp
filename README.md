@@ -1,74 +1,71 @@
 # WHOOP MCP Server
 
-An MCP (Model Context Protocol) server that provides access to WHOOP API v2 data for wearable device metrics.
+An MCP (Model Context Protocol) server that provides seamless access to your WHOOP fitness and recovery data through Claude and other MCP clients.
+
+Built for **WHOOP API v2**.
 
 ## Features
 
-This MCP server provides tools to access:
+Access your WHOOP data naturally through conversation:
 
-- **User Profile**: Get authenticated user's basic profile information
-- **Physiological Cycles**: Access cycle data with strain and heart rate metrics
-- **Recovery Data**: Retrieve recovery scores, HRV, resting heart rate, and readiness metrics
-- **Sleep Data**: Get sleep stages, efficiency, performance scores, and sleep quality metrics
-- **Workout Data**: Access workout activities with sport types, strain, duration, and heart rate zones
-- **Automatic Token Refresh**: Seamlessly refreshes expired access tokens using refresh tokens without manual intervention
+- **Body Measurements**: Height, weight, and max heart rate
+- **Physiological Cycles**: Strain scores and heart rate metrics
+- **Recovery Data**: Recovery scores, HRV, resting heart rate, SpO2, and skin temperature
+- **Sleep Analysis**: Sleep stages, efficiency, performance scores, and sleep quality
+- **Workout Tracking**: Activities with sport types, strain, duration, heart rate zones, and distance
+- **Automatic Token Refresh**: No manual re-authentication needed - refresh tokens handle everything
 
 ## Prerequisites
 
-- Python 3.12 or higher
-- A WHOOP account
-- WHOOP Developer Dashboard access at [developer-dashboard.whoop.com](https://developer-dashboard.whoop.com)
+- Python 3.12+
+- A WHOOP account with an active membership
+- Access to the [WHOOP Developer Dashboard](https://developer-dashboard.whoop.com) - just login with your WHOOP account!
 
-## Setup
+## Quick Start
 
 ### 1. Install Dependencies
 
-This project uses `uv` for dependency management:
+This project uses `uv` for dependency management. If you don't have it installed:
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Then sync dependencies:
 
 ```bash
 uv sync
 ```
 
-Or with pip:
-
-```bash
-pip install fastmcp httpx
-```
-
-### 2. Configure WHOOP API Credentials
+### 2. Create a WHOOP OAuth Application
 
 1. Visit the [WHOOP Developer Dashboard](https://developer-dashboard.whoop.com)
-2. Create a new application or use an existing one
-3. Note your Client ID and Client Secret
-4. Configure your OAuth 2.0 redirect URI
+2. Create a new application (or use an existing one)
+3. **Configure the redirect URI:** `http://localhost:8080/callback`
+4. For contacts add your email address and privacy policy URL just use https://example.com/privacy, this is only for your usage!
+5. Select all scopes
+6. Note your **Client ID** and **Client Secret**
 
-5. Copy the example environment file:
+### 3. Run the Bootstrap Script
+
+Create a `.env` file with your OAuth application credentials:
 
 ```bash
 cp .env.example .env
 ```
 
-6. Edit `.env` and add your credentials (you'll get the tokens in the next step):
+Edit `.env` and add your credentials:
 
 ```env
-WHOOP_CLIENT_ID=your_client_id
-WHOOP_CLIENT_SECRET=your_client_secret
-WHOOP_ACCESS_TOKEN=your_access_token
-WHOOP_REFRESH_TOKEN=your_refresh_token
+WHOOP_CLIENT_ID=your_client_id_here
+WHOOP_CLIENT_SECRET=your_client_secret_here
 ```
 
-### 3. Configure OAuth Redirect URI in WHOOP Developer Dashboard
-
-**Important:** Before getting your access token, configure the redirect URI:
-
-1. Go to [WHOOP Developer Dashboard](https://developer-dashboard.whoop.com)
-2. Select your application
-3. Add this redirect URI: `http://localhost:8080/callback`
-4. Save the changes
-
-### 4. Obtain an Access Token
-
-Use the included OAuth helper script to get your access token:
+Run the bootstrap script:
 
 ```bash
 python oauth_helper.py
@@ -76,70 +73,19 @@ python oauth_helper.py
 
 This will:
 1. Open your browser to authorize the application
-2. Start a local web server to receive the callback
-3. Exchange the authorization code for an access token
-4. Display your access token and refresh token
+2. Start a local web server to receive the OAuth callback
+3. Exchange the authorization code for access and refresh tokens
+4. **Output the complete MCP server configuration** ready to copy
 
-Then copy **both** the access token and refresh token to your `.env` file:
+### 4. Add to Your MCP Client
 
-```env
-WHOOP_ACCESS_TOKEN=your_access_token_here
-WHOOP_REFRESH_TOKEN=your_refresh_token_here
-```
+The bootstrap script outputs a configuration block. Copy it and add it to your MCP client:
 
-**Important:** WHOOP access tokens are short-lived. The refresh token is essential for the server to automatically refresh expired tokens without manual re-authentication.
+**For Claude Desktop:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-**Manual OAuth Flow (Alternative):**
-
-If you prefer to do it manually:
-
-**Authorization URL:**
-```
-https://api.prod.whoop.com/oauth/oauth2/auth
-```
-
-**Token URL:**
-```
-https://api.prod.whoop.com/oauth/oauth2/token
-```
-
-**Required Scopes:**
-```
-read:profile read:cycles read:recovery read:sleep read:workout offline
-```
-
-**Required Parameters:**
-- `client_id` - Your Client ID
-- `redirect_uri` - `http://localhost:8080/callback` (or your configured URI)
-- `response_type` - `code`
-- `scope` - The scopes listed above
-- `state` - Random string for CSRF protection (min 8 characters)
-
-For detailed OAuth setup, see the [WHOOP OAuth documentation](https://developer.whoop.com/docs/developing/oauth).
-
-## Running the Server
-
-### As an MCP Server
-
-Run the server using FastMCP:
-
-```bash
-uv run main.py
-```
-
-Or with Python:
-
-```bash
-python main.py
-```
-
-### Configuration for Claude Desktop
-
-Add this to your Claude Desktop configuration file:
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+The configuration will look like this:
 
 ```json
 {
@@ -148,30 +94,79 @@ Add this to your Claude Desktop configuration file:
       "command": "uv",
       "args": [
         "--directory",
-        "/Users/YOUR_USERNAME/path/to/whoop-mcp",
+        "/absolute/path/to/whoop-mcp",
         "run",
         "main.py"
       ],
       "env": {
-        "WHOOP_CLIENT_ID": "your_client_id_here",
-        "WHOOP_CLIENT_SECRET": "your_client_secret_here",
-        "WHOOP_ACCESS_TOKEN": "your_access_token_here",
-        "WHOOP_REFRESH_TOKEN": "your_refresh_token_here"
+        "WHOOP_CLIENT_ID": "your_client_id",
+        "WHOOP_CLIENT_SECRET": "your_client_secret",
+        "WHOOP_ACCESS_TOKEN": "your_access_token",
+        "WHOOP_REFRESH_TOKEN": "your_refresh_token"
       }
     }
   }
 }
 ```
 
-**Important notes:**
-- Replace `/Users/YOUR_USERNAME/path/to/whoop-mcp` with the actual absolute path to this project
-- Include **all four** environment variables (especially the refresh token for automatic token renewal)
-- The `--directory` flag tells `uv` where to find the project and its dependencies
+**Restart Claude Desktop** and you're ready to use the WHOOP MCP server!
+
+---
+
+## Advanced Configuration
+
+### Manual Testing (Without MCP Client)
+
+To run the server standalone for testing:
+
+```bash
+uv run main.py
+```
+
+### Manual OAuth Flow
+
+If you prefer to handle OAuth manually instead of using the bootstrap script:
+
+**Authorization URL:** `https://api.prod.whoop.com/oauth/oauth2/auth`
+
+**Token URL:** `https://api.prod.whoop.com/oauth/oauth2/token`
+
+**Required Scopes:** `read:profile read:cycles read:recovery read:sleep read:workout offline`
+
+For detailed OAuth setup, see the [WHOOP OAuth documentation](https://developer.whoop.com/docs/developing/oauth).
+
+### Alternative: .env File Configuration
+
+For local development/testing, you can use environment variables in a `.env` file:
+
+```env
+WHOOP_CLIENT_ID=your_client_id
+WHOOP_CLIENT_SECRET=your_client_secret
+WHOOP_ACCESS_TOKEN=your_access_token
+WHOOP_REFRESH_TOKEN=your_refresh_token
+```
+
+Then run: `uv run main.py`
+
+## What Can You Ask?
+
+Once configured, you can interact with your WHOOP data naturally through Claude:
+
+- "What was my recovery score this morning?"
+- "Show me my sleep data for the last week"
+- "How many workouts did I do this month?"
+- "What's my average HRV over the past 30 days?"
+- "Did I get enough deep sleep last night?"
+- "What was the strain on my last run?"
+- "What are my body measurements?"
 
 ## Available Tools
 
 ### get_user_profile()
-Get the authenticated user's basic profile information.
+Get the authenticated user's body measurements including:
+- Height (meters)
+- Weight (kilograms)
+- Max heart rate (bpm)
 
 ### get_recent_cycles(days=7)
 Get physiological cycles for the last N days (default 7).
@@ -228,15 +223,6 @@ Get workout data for a specific date range.
 - `start_date` (str): ISO 8601 formatted date
 - `end_date` (str): ISO 8601 formatted date
 - `limit` (int): Max records to return (default 25, max 50)
-
-## Example Usage
-
-Once configured in Claude Desktop, you can ask questions like:
-
-- "What was my recovery score yesterday?"
-- "Show me my sleep data for the last week"
-- "What workouts did I do this month?"
-- "How has my HRV been trending over the past 30 days?"
 
 ## API Version
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-WHOOP OAuth Helper
+WHOOP MCP Server Bootstrap Script
 
-This script helps you complete the OAuth 2.0 flow to get an access token
-for the WHOOP API. It starts a local web server to receive the callback.
+This script helps you set up the WHOOP MCP server for use with Claude Code
+or other MCP clients. It completes the OAuth 2.0 flow and outputs the
+complete configuration ready to add to your MCP client.
 
 Usage:
     python oauth_helper.py
@@ -14,8 +15,11 @@ Requirements:
 """
 
 import os
+import sys
+import json
 import secrets
 import webbrowser
+from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
@@ -241,19 +245,46 @@ def main():
 
         print(f"Token expires in: {expires_in} seconds ({expires_in // 3600} hours)")
         print()
-        print("📝 Next steps:")
-        print("   1. Copy the access token above")
-        print("   2. Add it to your .env file as WHOOP_ACCESS_TOKEN")
-        print("   3. If you have a refresh token, save it securely for later use")
+
+        # Get the absolute path to the project directory
+        script_dir = Path(__file__).parent.resolve()
+
+        # Build MCP server configuration for uv
+        mcp_config = {
+            "whoop": {
+                "command": "uv",
+                "args": [
+                    "--directory",
+                    str(script_dir),
+                    "run",
+                    "main.py"
+                ],
+                "env": {
+                    "WHOOP_CLIENT_ID": CLIENT_ID,
+                    "WHOOP_CLIENT_SECRET": CLIENT_SECRET,
+                    "WHOOP_ACCESS_TOKEN": access_token,
+                    "WHOOP_REFRESH_TOKEN": refresh_token
+                }
+            }
+        }
+
+        print("=" * 80)
+        print("🎉 MCP SERVER CONFIGURATION")
+        print("=" * 80)
         print()
-        print("Example .env file:")
-        print("-" * 60)
-        print(f"WHOOP_CLIENT_ID={CLIENT_ID}")
-        print(f"WHOOP_CLIENT_SECRET={CLIENT_SECRET}")
-        print(f"WHOOP_ACCESS_TOKEN={access_token}")
-        if refresh_token:
-            print(f"WHOOP_REFRESH_TOKEN={refresh_token}")
-        print("-" * 60)
+        print("Copy the configuration below and add it to your MCP client config:")
+        print()
+        print("For Claude Code/Claude Desktop:")
+        print("  • macOS: ~/Library/Application Support/Claude/claude_desktop_config.json")
+        print("  • Windows: %APPDATA%/Claude/claude_desktop_config.json")
+        print()
+        print("Add this to the 'mcpServers' section:")
+        print()
+        print(json.dumps(mcp_config, indent=2))
+        print()
+        print("=" * 80)
+        print()
+        print("✅ Once you have added the configuration to your MCP client, restart Claude Code to use your WHOOP MCP server.")
 
     except Exception as e:
         print(f"❌ Failed to exchange code for token: {e}")
