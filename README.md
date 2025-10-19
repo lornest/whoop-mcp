@@ -68,7 +68,7 @@ WHOOP_CLIENT_SECRET=your_client_secret_here
 Run the bootstrap script:
 
 ```bash
-python oauth_helper.py
+python bootstrap.py
 ```
 
 This will:
@@ -280,7 +280,7 @@ WHOOP access tokens are short-lived (typically a few hours). This server automat
 - Retries the original request with the new token
 - All of this happens transparently without user intervention
 
-If token refresh fails, you'll need to re-authenticate using `python oauth_helper.py`.
+If token refresh fails, you'll need to re-authenticate using `python bootstrap.py`.
 
 ## Error Handling
 

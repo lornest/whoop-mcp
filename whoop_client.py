@@ -4,15 +4,12 @@ WHOOP API Client
 Handles authentication and API requests to the WHOOP API v2.
 """
 
-import os
 import logging
 from typing import Optional
 import httpx
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
-# Whoop API configuration
 API_BASE_URL = "https://api.prod.whoop.com"
 TOKEN_URL = f"{API_BASE_URL}/oauth/oauth2/token"
 
@@ -55,7 +52,6 @@ class TokenManager:
                 response.raise_for_status()
                 token_data = response.json()
 
-                # Update tokens
                 self.access_token = token_data["access_token"]
                 if "refresh_token" in token_data:
                     self.refresh_token = token_data["refresh_token"]
@@ -66,7 +62,7 @@ class TokenManager:
             except httpx.HTTPStatusError as e:
                 logger.error(f"Failed to refresh token: {e}")
                 raise ValueError(
-                    "Failed to refresh access token. Please re-authenticate using oauth_helper.py"
+                    "Failed to refresh access token. Please re-authenticate using bootstrap.py"
                 )
             except Exception as e:
                 logger.error(f"Error refreshing token: {e}")
