@@ -34,7 +34,7 @@ REDIRECT_URI = "http://localhost:8080/callback"
 AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 
-# Scopes needed for the MCP server
+# Scopes needed for the MCP server (note: we need offline access to refresh the token!)
 SCOPES = "read:body_measurement read:cycles read:recovery read:sleep read:workout offline"
 
 # State for CSRF protection
