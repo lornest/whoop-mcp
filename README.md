@@ -156,9 +156,12 @@ Once configured, you can interact with your WHOOP data naturally through Claude:
 - "Show me my sleep data for the last week"
 - "How many workouts did I do this month?"
 - "What's my average HRV over the past 30 days?"
-- "Did I get enough deep sleep last night?"
-- "What was the strain on my last run?"
-- "What are my body measurements?"
+
+You can even ask more complex questions like:
+
+- "Analyze my sleep and workout data for the last two weeks. What are my recovery patterns?"
+
+Or combine with data from other tools like your Google Calendar to see how your workouts and recovery align with your schedule.
 
 ## Available Tools
 
