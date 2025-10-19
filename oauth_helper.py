@@ -35,7 +35,7 @@ AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 
 # Scopes needed for the MCP server
-SCOPES = "read:profile read:cycles read:recovery read:sleep read:workout offline"
+SCOPES = "read:body_measurement read:cycles read:recovery read:sleep read:workout offline"
 
 # State for CSRF protection
 STATE = secrets.token_urlsafe(32)
