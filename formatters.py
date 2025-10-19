@@ -9,7 +9,7 @@ def format_workout(workout: dict) -> str:
     """Format a workout record into human-readable text."""
     lines = []
 
-    # Header with sport name (prioritize over ID)
+    # Header with sport name (prioritise over less user-friendly ID)
     sport = workout.get("sport_name", f"Sport ID {workout.get('sport_id', 'Unknown')}")
     start = workout.get("start", "")
     lines.append(f"Workout: {sport}")

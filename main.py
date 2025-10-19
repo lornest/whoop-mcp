@@ -24,10 +24,9 @@ from formatters import (
     format_response,
 )
 
-# Initialize MCP server
 mcp = FastMCP("whoop-mcp")
 
-# OAuth credentials (to be set via environment variables)
+# OAuth credentials (to be set via environment variables), see README.md for instructions
 CLIENT_ID = os.getenv("WHOOP_CLIENT_ID")
 CLIENT_SECRET = os.getenv("WHOOP_CLIENT_SECRET")
 ACCESS_TOKEN = os.getenv("WHOOP_ACCESS_TOKEN")
@@ -52,7 +51,11 @@ def get_client() -> WhoopAPIClient:
     return WhoopAPIClient(token_manager)
 
 
-@mcp.tool()
+@mcp.tool(
+    name="get_body_measurements",
+    title="Get body measurements",
+    description="Get the user's body measurements (height, weight, max HR)."
+)
 async def get_user_profile() -> str:
     """
     Get the authenticated WHOOP user's body measurements.
@@ -64,7 +67,10 @@ async def get_user_profile() -> str:
     return json.dumps(profile, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get recent cycles",
+    description="Get recent physiological cycles with recovery data. A cycle is a 'sleep-to-sleep' cycle, which is typically a day."
+)
 async def get_recent_cycles(days: int = 7) -> str:
     """
     Get recent physiological cycles with recovery data.
@@ -85,7 +91,10 @@ async def get_recent_cycles(days: int = 7) -> str:
     return format_response(cycles, format_cycle)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get recent recovery",
+    description="Get recent recovery scores and metrics. Recovery metrics include your recovery score, resting heart rate, HRV, blood oxygen saturation, and skin temperature."
+)
 async def get_recent_recovery(days: int = 7) -> str:
     """
     Get recent recovery scores and metrics.
@@ -106,7 +115,10 @@ async def get_recent_recovery(days: int = 7) -> str:
     return format_response(recovery, format_recovery)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get recent sleep",
+    description="Get recent sleep data and metrics. Sleep metrics include sleep stages, efficiency, and performance scores."
+)
 async def get_recent_sleep(days: int = 7) -> str:
     """
     Get recent sleep data and metrics.
@@ -127,7 +139,10 @@ async def get_recent_sleep(days: int = 7) -> str:
     return format_response(sleep, format_sleep)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get recent workouts",
+    description="Get recent workout data and activities. Data includes sport type, strain, duration, and heart rate zones."
+)
 async def get_recent_workouts(days: int = 7) -> str:
     """
     Get recent workout data and activities.
@@ -148,7 +163,10 @@ async def get_recent_workouts(days: int = 7) -> str:
     return format_response(workouts, format_workout)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get cycles for date range",
+    description="Get physiological cycles for a specific date range."
+)
 async def get_cycles_for_date_range(
     start_date: str,
     end_date: str,
@@ -173,7 +191,10 @@ async def get_cycles_for_date_range(
     return format_response(cycles, format_cycle)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get sleep for date range",
+    description="Get sleep data for a specific date range."
+)
 async def get_sleep_for_date_range(
     start_date: str,
     end_date: str,
@@ -198,7 +219,10 @@ async def get_sleep_for_date_range(
     return format_response(sleep, format_sleep)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Get workouts for date range",
+    description="Get workout data for a specific date range."
+)
 async def get_workouts_for_date_range(
     start_date: str,
     end_date: str,
