@@ -15,7 +15,6 @@ Requirements:
 """
 
 import os
-import sys
 import json
 import secrets
 import webbrowser
@@ -23,9 +22,10 @@ from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
+import time
 from dotenv import load_dotenv
+from secure_token_storage import TokenData, get_storage_backend
 
-# Load environment variables
 load_dotenv()
 
 CLIENT_ID = os.getenv("WHOOP_CLIENT_ID")
@@ -34,13 +34,12 @@ REDIRECT_URI = "http://localhost:8080/callback"
 AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 
-# Scopes needed for the MCP server (note: we need offline access to refresh the token!)
+# Scopes needed for the Whoop API (note: we need offline access to refresh the token!)
 SCOPES = "read:body_measurement read:cycles read:recovery read:sleep read:workout offline"
 
 # State for CSRF protection
 STATE = secrets.token_urlsafe(32)
 
-# Storage for the authorization code
 auth_code = None
 auth_error = None
 
@@ -52,12 +51,10 @@ class CallbackHandler(BaseHTTPRequestHandler):
         """Handle GET request to callback endpoint."""
         global auth_code, auth_error
 
-        # Parse the callback URL
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
 
         if parsed.path == "/callback":
-            # Check for errors
             if "error" in params:
                 auth_error = params["error"][0]
                 error_desc = params.get("error_description", ["Unknown error"])[0]
@@ -78,7 +75,6 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 """.encode())
                 return
 
-            # Verify state parameter
             returned_state = params.get("state", [None])[0]
             if returned_state != STATE:
                 auth_error = "Invalid state parameter (CSRF protection)"
@@ -98,7 +94,6 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 """)
                 return
 
-            # Extract authorization code
             auth_code = params.get("code", [None])[0]
 
             if auth_code:
@@ -159,7 +154,6 @@ def main():
     """Run the OAuth flow."""
     global auth_code, auth_error
 
-    # Validate configuration
     if not CLIENT_ID or not CLIENT_SECRET:
         print("❌ Error: WHOOP_CLIENT_ID and WHOOP_CLIENT_SECRET must be set in .env file")
         print("\nPlease:")
@@ -178,7 +172,6 @@ def main():
     print(f"   {REDIRECT_URI}")
     print()
 
-    # Build authorization URL
     auth_params = {
         "client_id": CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
@@ -188,22 +181,21 @@ def main():
     }
     authorization_url = f"{AUTH_URL}?{urlencode(auth_params)}"
 
+    print("🔄 Starting local server on http://localhost:8080...")
+    server = HTTPServer(("localhost", 8080), CallbackHandler)
+    print("✅ Server ready to receive OAuth callback")
+    print()
+
     print("🌐 Opening authorization URL in your browser...")
     print(f"   If it doesn't open automatically, visit:")
     print(f"   {authorization_url}")
     print()
 
-    # Open browser
     webbrowser.open(authorization_url)
 
-    # Start local server to receive callback
-    print("🔄 Starting local server on http://localhost:8080...")
     print("   Waiting for authorization...")
     print()
 
-    server = HTTPServer(("localhost", 8080), CallbackHandler)
-
-    # Handle one request (the callback)
     while auth_code is None and auth_error is None:
         server.handle_request()
 
@@ -218,7 +210,6 @@ def main():
     print("✅ Authorization code received!")
     print()
 
-    # Exchange code for token
     print("🔄 Exchanging authorization code for access token...")
     try:
         token_response = exchange_code_for_token(auth_code)
@@ -246,10 +237,22 @@ def main():
         print(f"Token expires in: {expires_in} seconds ({expires_in // 3600} hours)")
         print()
 
-        # Get the absolute path to the project directory
+        token_data = TokenData(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            expires_at=time.time() + expires_in if expires_in else None,
+            created_at=time.time()
+        )
+
+        storage = get_storage_backend()
+        storage.save_tokens(token_data)
+        print("✅ Tokens saved to secure storage (OS keychain or encrypted file)")
+        print()
+
         script_dir = Path(__file__).parent.resolve()
 
-        # Build MCP server configuration for uv
         mcp_config = {
             "whoop": {
                 "command": "uv",
@@ -258,13 +261,7 @@ def main():
                     str(script_dir),
                     "run",
                     "main.py"
-                ],
-                "env": {
-                    "WHOOP_CLIENT_ID": CLIENT_ID,
-                    "WHOOP_CLIENT_SECRET": CLIENT_SECRET,
-                    "WHOOP_ACCESS_TOKEN": access_token,
-                    "WHOOP_REFRESH_TOKEN": refresh_token
-                }
+                ]
             }
         }
 

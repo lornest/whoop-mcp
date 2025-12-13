@@ -2,11 +2,17 @@
 WHOOP API Client
 
 Handles authentication and API requests to the WHOOP API v2.
+Uses authlib for OAuth 2.0/2.1 compliance per MCP security guidance.
 """
 
 import logging
+import time
 from typing import Optional
+
 import httpx
+from authlib.integrations.httpx_client import AsyncOAuth2Client
+
+from secure_token_storage import TokenData, get_storage_backend
 
 logger = logging.getLogger(__name__)
 
@@ -14,131 +20,93 @@ API_BASE_URL = "https://api.prod.whoop.com"
 TOKEN_URL = f"{API_BASE_URL}/oauth/oauth2/token"
 
 
-class TokenManager:
-    """Manages access and refresh tokens with automatic refresh."""
+class WhoopOAuth2Client:
+    def __init__(self, token_data: TokenData):
+        self.storage = get_storage_backend()
 
-    def __init__(
-        self,
-        access_token: str,
-        refresh_token: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-    ):
-        self.access_token = access_token
-        self.refresh_token = refresh_token
-        self.client_id = client_id
-        self.client_secret = client_secret
+        self.oauth_client = AsyncOAuth2Client(
+            client_id=token_data.client_id,
+            client_secret=token_data.client_secret,
+            token_endpoint=TOKEN_URL,
+            token_endpoint_auth_method='client_secret_post',  # Whoop requires this
+            token=self._create_token_dict(token_data),
+            update_token=self._save_token_callback,
+        )
 
-    async def refresh_access_token(self) -> str:
-        """Refresh the access token using the refresh token."""
-        if not self.refresh_token:
-            raise ValueError("No refresh token available. Please re-authenticate.")
-
-        if not self.client_id or not self.client_secret:
-            raise ValueError("Client ID and Secret must be set to refresh tokens.")
-
-        logger.info("Refreshing access token...")
-
-        data = {
-            "grant_type": "refresh_token",
-            "refresh_token": self.refresh_token,
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+    def _create_token_dict(self, token_data: TokenData) -> dict:
+        """Convert TokenData to authlib token format."""
+        return {
+            "access_token": token_data.access_token,
+            "refresh_token": token_data.refresh_token,
+            "token_type": "Bearer",
+            "expires_at": token_data.expires_at or (time.time() + 3600),
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            try:
-                response = await client.post(TOKEN_URL, data=data)
-                response.raise_for_status()
-                token_data = response.json()
+    async def _save_token_callback(self, token: dict, refresh_token: str = None):
+        """
+        Called by authlib when token is refreshed.
 
-                self.access_token = token_data["access_token"]
-                if "refresh_token" in token_data:
-                    self.refresh_token = token_data["refresh_token"]
-
-                logger.info("Access token refreshed successfully")
-                return self.access_token
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Failed to refresh token: {e}")
-                raise ValueError(
-                    "Failed to refresh access token. Please re-authenticate using bootstrap.py"
-                )
-            except Exception as e:
-                logger.error(f"Error refreshing token: {e}")
-                raise
+        Automatically persists tokens to secure storage.
+        """
+        token_data = TokenData(
+            access_token=token["access_token"],
+            refresh_token=token.get("refresh_token") or refresh_token,
+            client_id=self.oauth_client.client_id,
+            client_secret=self.oauth_client.client_secret,
+            expires_at=token.get("expires_at"),
+            created_at=time.time(),
+        )
+        self.storage.save_tokens(token_data)
+        logger.info("Tokens refreshed and saved to secure storage")
 
 
 class WhoopAPIClient:
     """Client for interacting with the WHOOP API v2."""
 
-    def __init__(self, token_manager: TokenManager):
-        self.token_manager = token_manager
+    def __init__(self, oauth_client: WhoopOAuth2Client):
+        """Initialize API client with OAuth client."""
+        self.oauth_client = oauth_client
         self.base_url = API_BASE_URL
 
-    def _get_headers(self) -> dict:
-        """Get authorization headers for API requests."""
-        return {
-            "Authorization": f"Bearer {self.token_manager.access_token}",
-            "Content-Type": "application/json"
-        }
-
     async def _make_request(self, method: str, url: str, **kwargs) -> dict:
-        """Make an HTTP request with automatic token refresh on 401."""
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            try:
-                if method == "GET":
-                    response = await client.get(url, headers=self._get_headers(), **kwargs)
-                elif method == "POST":
-                    response = await client.post(url, headers=self._get_headers(), **kwargs)
-                else:
-                    raise ValueError(f"Unsupported HTTP method: {method}")
+        """
+        Make authenticated API request.
 
-                response.raise_for_status()
-                return response.json()
+        Automatically handles token expiry checking and refresh.
+        """
+        try:
+            response = await self.oauth_client.oauth_client.request(
+                method, url, **kwargs
+            )
+            response.raise_for_status()
+            return response.json()
 
-            except httpx.HTTPStatusError as e:
-                # Try to refresh token on 401 Unauthorized
-                if e.response.status_code == 401 and self.token_manager.refresh_token:
-                    logger.info("Access token expired, attempting refresh...")
-                    await self.token_manager.refresh_access_token()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:
+                logger.error("Rate limit exceeded")
+                raise ValueError("WHOOP API rate limit exceeded. Please try again later.")
+            elif e.response.status_code == 401:
+                logger.error("Authentication failed")
+                raise ValueError("Invalid or expired access token. Please re-authenticate.")
+            else:
+                logger.error(f"HTTP error occurred: {e}")
+                raise
 
-                    # Retry the request with new token
-                    if method == "GET":
-                        response = await client.get(url, headers=self._get_headers(), **kwargs)
-                    elif method == "POST":
-                        response = await client.post(url, headers=self._get_headers(), **kwargs)
-
-                    response.raise_for_status()
-                    return response.json()
-
-                # Handle other HTTP errors
-                elif e.response.status_code == 429:
-                    logger.error("Rate limit exceeded.")
-                    raise ValueError("WHOOP API rate limit exceeded. Please try again later.")
-                elif e.response.status_code == 401:
-                    logger.error("Authentication failed and no refresh token available.")
-                    raise ValueError("Invalid or expired access token. Please re-authenticate.")
-                else:
-                    logger.error(f"HTTP error occurred: {e}")
-                    raise
-
-            except httpx.RequestError as e:
-                logger.error(f"Network error occurred: {e}")
-                raise ValueError(f"Failed to connect to WHOOP API: {str(e)}")
+        except httpx.RequestError as e:
+            logger.error(f"Network error occurred: {e}")
+            raise ValueError(f"Failed to connect to WHOOP API: {str(e)}")
 
     async def get_user_profile(self) -> dict:
         """Get the authenticated user's body measurements (height, weight, max HR)."""
         return await self._make_request(
-            "GET",
-            f"{self.base_url}/developer/v2/user/measurement/body"
+            "GET", f"{self.base_url}/developer/v2/user/measurement/body"
         )
 
     async def get_cycles(
         self,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        limit: int = 25
+        limit: int = 25,
     ) -> dict:
         """
         Get physiological cycles for a date range.
@@ -155,16 +123,14 @@ class WhoopAPIClient:
             params["end"] = end_date
 
         return await self._make_request(
-            "GET",
-            f"{self.base_url}/developer/v2/cycle",
-            params=params
+            "GET", f"{self.base_url}/developer/v2/cycle", params=params
         )
 
     async def get_recovery(
         self,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        limit: int = 25
+        limit: int = 25,
     ) -> dict:
         """
         Get recovery data for a date range.
@@ -181,16 +147,14 @@ class WhoopAPIClient:
             params["end"] = end_date
 
         return await self._make_request(
-            "GET",
-            f"{self.base_url}/developer/v2/recovery",
-            params=params
+            "GET", f"{self.base_url}/developer/v2/recovery", params=params
         )
 
     async def get_sleep(
         self,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        limit: int = 25
+        limit: int = 25,
     ) -> dict:
         """
         Get sleep data for a date range.
@@ -207,16 +171,14 @@ class WhoopAPIClient:
             params["end"] = end_date
 
         return await self._make_request(
-            "GET",
-            f"{self.base_url}/developer/v2/activity/sleep",
-            params=params
+            "GET", f"{self.base_url}/developer/v2/activity/sleep", params=params
         )
 
     async def get_workouts(
         self,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        limit: int = 25
+        limit: int = 25,
     ) -> dict:
         """
         Get workout data for a date range.
@@ -233,7 +195,5 @@ class WhoopAPIClient:
             params["end"] = end_date
 
         return await self._make_request(
-            "GET",
-            f"{self.base_url}/developer/v2/activity/workout",
-            params=params
+            "GET", f"{self.base_url}/developer/v2/activity/workout", params=params
         )

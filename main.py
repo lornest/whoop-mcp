@@ -10,12 +10,12 @@ An MCP server that provides access to WHOOP API v2 data including:
 Requires OAuth 2.0 authentication.
 """
 
-import os
 import json
 from datetime import datetime, timedelta
 from fastmcp import FastMCP
+from typing import Optional
 
-from whoop_client import TokenManager, WhoopAPIClient
+from whoop_client import WhoopOAuth2Client, WhoopAPIClient
 from formatters import (
     format_cycle,
     format_recovery,
@@ -23,32 +23,34 @@ from formatters import (
     format_workout,
     format_response,
 )
+from secure_token_storage import get_storage_backend
 
 mcp = FastMCP("whoop-mcp")
 
-# OAuth credentials (to be set via environment variables), see README.md for instructions
-CLIENT_ID = os.getenv("WHOOP_CLIENT_ID")
-CLIENT_SECRET = os.getenv("WHOOP_CLIENT_SECRET")
-ACCESS_TOKEN = os.getenv("WHOOP_ACCESS_TOKEN")
-REFRESH_TOKEN = os.getenv("WHOOP_REFRESH_TOKEN")
+_oauth_client: Optional[WhoopOAuth2Client] = None
 
 
 def get_client() -> WhoopAPIClient:
-    """Get an authenticated WHOOP API client."""
-    if not ACCESS_TOKEN:
-        raise ValueError(
-            "WHOOP_ACCESS_TOKEN environment variable is not set. "
-            "Please set it to your WHOOP API access token."
-        )
+    """
+    Get an authenticated WHOOP API client.
 
-    # Create token manager with refresh token support
-    token_manager = TokenManager(
-        ACCESS_TOKEN,
-        REFRESH_TOKEN,
-        CLIENT_ID,
-        CLIENT_SECRET
-    )
-    return WhoopAPIClient(token_manager)
+    Tokens are loaded from secure storage (OS keychain or encrypted file).
+    Uses authlib for OAuth 2.0/2.1 compliance per MCP security guidance.
+    """
+    global _oauth_client
+
+    if _oauth_client is None:
+        storage = get_storage_backend()
+        token_data = storage.load_tokens()
+
+        if not token_data:
+            raise ValueError(
+                "No stored tokens found. Please run: python bootstrap.py"
+            )
+
+        _oauth_client = WhoopOAuth2Client(token_data)
+
+    return WhoopAPIClient(_oauth_client)
 
 
 @mcp.tool(

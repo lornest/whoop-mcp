@@ -97,17 +97,13 @@ The configuration will look like this:
         "/absolute/path/to/whoop-mcp",
         "run",
         "main.py"
-      ],
-      "env": {
-        "WHOOP_CLIENT_ID": "your_client_id",
-        "WHOOP_CLIENT_SECRET": "your_client_secret",
-        "WHOOP_ACCESS_TOKEN": "your_access_token",
-        "WHOOP_REFRESH_TOKEN": "your_refresh_token"
-      }
+      ]
     }
   }
 }
 ```
+
+**Note:** Tokens are stored securely (OS keychain or encrypted file) - no environment variables needed!
 
 **Restart Claude Desktop** and you're ready to use the WHOOP MCP server!
 
@@ -134,19 +130,6 @@ If you prefer to handle OAuth manually instead of using the bootstrap script:
 **Required Scopes:** `read:profile read:cycles read:recovery read:sleep read:workout offline`
 
 For detailed OAuth setup, see the [WHOOP OAuth documentation](https://developer.whoop.com/docs/developing/oauth).
-
-### Alternative: .env File Configuration
-
-For local development/testing, you can use environment variables in a `.env` file:
-
-```env
-WHOOP_CLIENT_ID=your_client_id
-WHOOP_CLIENT_SECRET=your_client_secret
-WHOOP_ACCESS_TOKEN=your_access_token
-WHOOP_REFRESH_TOKEN=your_refresh_token
-```
-
-Then run: `uv run main.py`
 
 ## What Can You Ask?
 
@@ -264,23 +247,48 @@ Exercise activity data including:
 - Heart rate zones (5 levels)
 - Altitude and kilojoules
 
+## Security Features
+
+This server follows MCP security best practices and uses industry-standard secure storage:
+
+### Secure Token Storage
+
+Tokens are stored using the best available method for your platform:
+
+- **macOS**: Tokens stored in macOS Keychain
+- **Windows**: Tokens stored in Windows Credential Locker
+- **Linux**: Tokens stored in GNOME Keyring/KWallet
+- **Fallback**: Encrypted file storage using Fernet symmetric encryption
+
+**Your client secret is never included in the MCP configuration** - it's only stored in secure storage and used internally for token refresh operations.
+
+### OAuth 2.0/2.1 Compliance
+
+This server uses `authlib`, a well-tested OAuth library, following MCP guidance:
+
+> "Do not implement token validation or authorization logic by yourself. Use off-the-shelf, well-tested, and secure libraries."
+
+Benefits:
+- ✅ Standards-compliant OAuth 2.0/2.1 implementation
+- ✅ Automatic token expiry tracking
+- ✅ Proactive token refresh (tokens refreshed before expiry, not after failure)
+- ✅ No custom crypto or validation logic
+
+### Token Storage Locations
+
+- **OS Keychain**: Service name `whoop-mcp-tokens`
+- **Encrypted file**: `~/.whoop_mcp/tokens.enc` (fallback)
+
 ## Automatic Token Refresh
 
 WHOOP access tokens are short-lived (typically a few hours). This server automatically handles token refresh:
 
-1. **When a token expires** (401 error), the server automatically uses the refresh token to get a new access token
-2. **No manual intervention required** - The process is seamless and transparent
-3. **Refresh tokens are long-lived** - They typically last much longer (weeks/months)
-4. **Important:** Always include the `WHOOP_REFRESH_TOKEN` in your configuration
+1. **Proactive refresh** - Tokens are refreshed before they expire, not after
+2. **Automatic persistence** - Updated tokens are automatically saved to secure storage
+3. **Survives server restarts** - Tokens loaded from secure storage on startup
+4. **No manual intervention** - Everything happens transparently
 
-**How it works:**
-- The server detects when an access token has expired
-- It automatically calls the WHOOP token refresh endpoint
-- Updates the access token in memory
-- Retries the original request with the new token
-- All of this happens transparently without user intervention
-
-If token refresh fails, you'll need to re-authenticate using `python bootstrap.py`.
+If token refresh fails (e.g., refresh token expired after months of inactivity), you'll need to re-authenticate using `python bootstrap.py`.
 
 ## Error Handling
 
