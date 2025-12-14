@@ -7,7 +7,6 @@ Uses authlib for OAuth 2.0/2.1 compliance per MCP security guidance.
 
 import logging
 import time
-from typing import Optional
 
 import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
@@ -104,8 +103,8 @@ class WhoopAPIClient:
 
     async def get_cycles(
         self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         limit: int = 25,
     ) -> dict:
         """
@@ -128,8 +127,8 @@ class WhoopAPIClient:
 
     async def get_recovery(
         self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         limit: int = 25,
     ) -> dict:
         """
@@ -152,8 +151,8 @@ class WhoopAPIClient:
 
     async def get_sleep(
         self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         limit: int = 25,
     ) -> dict:
         """
@@ -176,8 +175,8 @@ class WhoopAPIClient:
 
     async def get_workouts(
         self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         limit: int = 25,
     ) -> dict:
         """

@@ -12,22 +12,22 @@ Requires OAuth 2.0 authentication.
 
 import json
 from datetime import datetime, timedelta
-from fastmcp import FastMCP
-from typing import Optional
 
-from whoop_client import WhoopOAuth2Client, WhoopAPIClient
+from fastmcp import FastMCP
+
 from formatters import (
     format_cycle,
     format_recovery,
+    format_response,
     format_sleep,
     format_workout,
-    format_response,
 )
 from secure_token_storage import get_storage_backend
+from whoop_client import WhoopAPIClient, WhoopOAuth2Client
 
 mcp = FastMCP("whoop-mcp")
 
-_oauth_client: Optional[WhoopOAuth2Client] = None
+_oauth_client: WhoopOAuth2Client | None = None
 
 
 def get_client() -> WhoopAPIClient:

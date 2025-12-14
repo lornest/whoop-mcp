@@ -14,16 +14,18 @@ Requirements:
     - Configure redirect URI in WHOOP Developer Dashboard as: http://localhost:8080/callback
 """
 
-import os
 import json
+import os
 import secrets
-import webbrowser
-from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import parse_qs, urlencode, urlparse
-import httpx
 import time
+import webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlencode, urlparse
+
+import httpx
 from dotenv import load_dotenv
+
 from secure_token_storage import TokenData, get_storage_backend
 
 load_dotenv()
@@ -163,12 +165,12 @@ def main():
 
     print("WHOOP OAuth Helper")
     print("=" * 60)
-    print(f"\n📋 Configuration:")
+    print("\n📋 Configuration:")
     print(f"   Client ID: {CLIENT_ID[:8]}...")
     print(f"   Redirect URI: {REDIRECT_URI}")
     print(f"   Scopes: {SCOPES}")
 
-    print(f"\n⚙️  Make sure your WHOOP Developer Dashboard has this redirect URI:")
+    print("\n⚙️  Make sure your WHOOP Developer Dashboard has this redirect URI:")
     print(f"   {REDIRECT_URI}")
     print()
 
@@ -187,7 +189,7 @@ def main():
     print()
 
     print("🌐 Opening authorization URL in your browser...")
-    print(f"   If it doesn't open automatically, visit:")
+    print("   If it doesn't open automatically, visit:")
     print(f"   {authorization_url}")
     print()
 

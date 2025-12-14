@@ -4,14 +4,13 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
+from secure_token_storage import TokenData
 from whoop_client import (
-    WhoopOAuth2Client,
-    WhoopAPIClient,
     API_BASE_URL,
     TOKEN_URL,
+    WhoopAPIClient,
+    WhoopOAuth2Client,
 )
-from secure_token_storage import TokenData
-
 
 # ==============================================================================
 # WhoopOAuth2Client Tests

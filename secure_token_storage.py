@@ -5,6 +5,7 @@ Provides secure storage for OAuth tokens using OS keychain
 or encrypted file storage, following MCP security best practices.
 """
 
+import base64
 import json
 import logging
 import os
@@ -13,13 +14,11 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import keyring
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import base64
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +33,10 @@ SALT_FILE_PATH = ENCRYPTED_FILE_DIR / "salt"
 class TokenData:
     """OAuth token data structure."""
     access_token: str
-    refresh_token: Optional[str]
+    refresh_token: str | None
     client_id: str
     client_secret: str
-    expires_at: Optional[float]  # Unix timestamp
+    expires_at: float | None  # Unix timestamp
     created_at: float
 
 
@@ -50,7 +49,7 @@ class SecureTokenStorage(ABC):
         pass
 
     @abstractmethod
-    def load_tokens(self) -> Optional[TokenData]:
+    def load_tokens(self) -> TokenData | None:
         """Load tokens from secure storage."""
         pass
 
@@ -85,7 +84,7 @@ class KeyringTokenStorage(SecureTokenStorage):
             logger.error(f"Failed to save tokens to keyring: {e}")
             raise
 
-    def load_tokens(self) -> Optional[TokenData]:
+    def load_tokens(self) -> TokenData | None:
         """Load tokens from OS keychain."""
         try:
             token_json = keyring.get_password(KEYRING_SERVICE, KEYRING_USERNAME)
@@ -190,7 +189,7 @@ class EncryptedFileTokenStorage(SecureTokenStorage):
             logger.error(f"Failed to save encrypted tokens: {e}")
             raise
 
-    def load_tokens(self) -> Optional[TokenData]:
+    def load_tokens(self) -> TokenData | None:
         """Load encrypted tokens from file."""
         try:
             if not self.file_path.exists():

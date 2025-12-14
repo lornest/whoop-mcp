@@ -1,24 +1,23 @@
 import json
 import os
+import shutil
+import tempfile
 import time
 from pathlib import Path
 from unittest.mock import patch
-import tempfile
-import shutil
 
 import pytest
 from cryptography.fernet import Fernet
 
 from secure_token_storage import (
-    TokenData,
-    KeyringTokenStorage,
-    EncryptedFileTokenStorage,
-    SecureTokenStorage,
-    get_storage_backend,
     KEYRING_SERVICE,
     KEYRING_USERNAME,
+    EncryptedFileTokenStorage,
+    KeyringTokenStorage,
+    SecureTokenStorage,
+    TokenData,
+    get_storage_backend,
 )
-
 
 # ==============================================================================
 # TokenData Tests
@@ -329,9 +328,9 @@ class TestKeyringTokenStorage:
 
     def test_is_available_test_value_mismatch(self, storage):
         """Test is_available returns False when test value doesn't match."""
-        with patch('secure_token_storage.keyring.set_password') as mock_set, \
+        with patch('secure_token_storage.keyring.set_password'), \
              patch('secure_token_storage.keyring.get_password') as mock_get, \
-             patch('secure_token_storage.keyring.delete_password') as mock_delete:
+             patch('secure_token_storage.keyring.delete_password'):
 
             mock_get.return_value = "wrong_value"
 
@@ -382,7 +381,7 @@ class TestEncryptedFileTokenStorage:
         storage_dir = temp_dir / "new_storage"
 
         with patch('secure_token_storage.ENCRYPTED_FILE_DIR', storage_dir):
-            storage = EncryptedFileTokenStorage()
+            _ = EncryptedFileTokenStorage()
 
             assert storage_dir.exists()
             # Check permissions (on Unix-like systems)
@@ -725,7 +724,7 @@ class TestStorageIntegration:
         backend1 = get_storage_backend()
         backend2 = get_storage_backend()
 
-        assert type(backend1) == type(backend2)
+        assert type(backend1) is type(backend2)
 
 
 # ==============================================================================
