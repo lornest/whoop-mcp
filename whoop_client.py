@@ -27,7 +27,7 @@ class WhoopOAuth2Client:
             client_id=token_data.client_id,
             client_secret=token_data.client_secret,
             token_endpoint=TOKEN_URL,
-            token_endpoint_auth_method='client_secret_post',  # Whoop requires this
+            token_endpoint_auth_method="client_secret_post",  # Whoop requires this
             token=self._create_token_dict(token_data),
             update_token=self._save_token_callback,
         )
@@ -74,9 +74,7 @@ class WhoopAPIClient:
         Automatically handles token expiry checking and refresh.
         """
         try:
-            response = await self.oauth_client.oauth_client.request(
-                method, url, **kwargs
-            )
+            response = await self.oauth_client.oauth_client.request(method, url, **kwargs)
             response.raise_for_status()
             return response.json()
 
@@ -121,9 +119,7 @@ class WhoopAPIClient:
         if end_date:
             params["end"] = end_date
 
-        return await self._make_request(
-            "GET", f"{self.base_url}/developer/v2/cycle", params=params
-        )
+        return await self._make_request("GET", f"{self.base_url}/developer/v2/cycle", params=params)
 
     async def get_recovery(
         self,

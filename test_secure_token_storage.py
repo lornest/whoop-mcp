@@ -23,6 +23,7 @@ from secure_token_storage import (
 # TokenData Tests
 # ==============================================================================
 
+
 class TestTokenData:
     """Test suite for TokenData dataclass."""
 
@@ -41,7 +42,7 @@ class TestTokenData:
             client_id=client_id,
             client_secret=client_secret,
             expires_at=expires_at,
-            created_at=created_at
+            created_at=created_at,
         )
 
         assert token_data.access_token == access_token
@@ -64,7 +65,7 @@ class TestTokenData:
             client_id=client_id,
             client_secret=client_secret,
             expires_at=None,
-            created_at=created_at
+            created_at=created_at,
         )
 
         assert token_data.access_token == access_token
@@ -83,7 +84,7 @@ class TestTokenData:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=created_at
+            created_at=created_at,
         )
         token_data2 = TokenData(
             access_token="token",
@@ -91,7 +92,7 @@ class TestTokenData:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=created_at
+            created_at=created_at,
         )
 
         assert token_data1 == token_data2
@@ -105,7 +106,7 @@ class TestTokenData:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=created_at
+            created_at=created_at,
         )
         token_data2 = TokenData(
             access_token="token2",
@@ -113,7 +114,7 @@ class TestTokenData:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=created_at
+            created_at=created_at,
         )
 
         assert token_data1 != token_data2
@@ -122,6 +123,7 @@ class TestTokenData:
 # ==============================================================================
 # KeyringTokenStorage Tests
 # ==============================================================================
+
 
 class TestKeyringTokenStorage:
     """Test suite for KeyringTokenStorage."""
@@ -135,7 +137,7 @@ class TestKeyringTokenStorage:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     @pytest.fixture
@@ -145,7 +147,7 @@ class TestKeyringTokenStorage:
 
     def test_save_tokens_success(self, storage, token_data):
         """Test saving tokens to keyring successfully."""
-        with patch('secure_token_storage.keyring.set_password') as mock_set:
+        with patch("secure_token_storage.keyring.set_password") as mock_set:
             storage.save_tokens(token_data)
 
             mock_set.assert_called_once()
@@ -171,10 +173,10 @@ class TestKeyringTokenStorage:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
-        with patch('secure_token_storage.keyring.set_password') as mock_set:
+        with patch("secure_token_storage.keyring.set_password") as mock_set:
             storage.save_tokens(token_data)
 
             saved_json = mock_set.call_args[0][2]
@@ -184,7 +186,7 @@ class TestKeyringTokenStorage:
 
     def test_save_tokens_keyring_exception(self, storage, token_data):
         """Test save_tokens raises exception when keyring fails."""
-        with patch('secure_token_storage.keyring.set_password') as mock_set:
+        with patch("secure_token_storage.keyring.set_password") as mock_set:
             mock_set.side_effect = Exception("Keyring error")
 
             with pytest.raises(Exception, match="Keyring error"):
@@ -192,16 +194,18 @@ class TestKeyringTokenStorage:
 
     def test_load_tokens_success(self, storage, token_data):
         """Test loading tokens from keyring successfully."""
-        token_json = json.dumps({
-            "access_token": token_data.access_token,
-            "refresh_token": token_data.refresh_token,
-            "client_id": token_data.client_id,
-            "client_secret": token_data.client_secret,
-            "expires_at": token_data.expires_at,
-            "created_at": token_data.created_at
-        })
+        token_json = json.dumps(
+            {
+                "access_token": token_data.access_token,
+                "refresh_token": token_data.refresh_token,
+                "client_id": token_data.client_id,
+                "client_secret": token_data.client_secret,
+                "expires_at": token_data.expires_at,
+                "created_at": token_data.created_at,
+            }
+        )
 
-        with patch('secure_token_storage.keyring.get_password') as mock_get:
+        with patch("secure_token_storage.keyring.get_password") as mock_get:
             mock_get.return_value = token_json
 
             loaded_data = storage.load_tokens()
@@ -217,7 +221,7 @@ class TestKeyringTokenStorage:
 
     def test_load_tokens_no_tokens_found(self, storage):
         """Test load_tokens returns None when no tokens exist."""
-        with patch('secure_token_storage.keyring.get_password') as mock_get:
+        with patch("secure_token_storage.keyring.get_password") as mock_get:
             mock_get.return_value = None
 
             loaded_data = storage.load_tokens()
@@ -226,17 +230,19 @@ class TestKeyringTokenStorage:
 
     def test_load_tokens_missing_created_at_defaults_to_current_time(self, storage):
         """Test load_tokens defaults created_at when missing."""
-        token_json = json.dumps({
-            "access_token": "token",
-            "refresh_token": "refresh",
-            "client_id": "client",
-            "client_secret": "secret",
-            "expires_at": time.time() + 3600
-            # created_at missing
-        })
+        token_json = json.dumps(
+            {
+                "access_token": "token",
+                "refresh_token": "refresh",
+                "client_id": "client",
+                "client_secret": "secret",
+                "expires_at": time.time() + 3600,
+                # created_at missing
+            }
+        )
 
-        with patch('secure_token_storage.keyring.get_password') as mock_get:
-            with patch('secure_token_storage.time.time') as mock_time:
+        with patch("secure_token_storage.keyring.get_password") as mock_get:
+            with patch("secure_token_storage.time.time") as mock_time:
                 mock_get.return_value = token_json
                 mock_time.return_value = 1234567890.0
 
@@ -246,7 +252,7 @@ class TestKeyringTokenStorage:
 
     def test_load_tokens_invalid_json(self, storage):
         """Test load_tokens returns None when JSON is invalid."""
-        with patch('secure_token_storage.keyring.get_password') as mock_get:
+        with patch("secure_token_storage.keyring.get_password") as mock_get:
             mock_get.return_value = "invalid json {"
 
             loaded_data = storage.load_tokens()
@@ -255,12 +261,14 @@ class TestKeyringTokenStorage:
 
     def test_load_tokens_missing_required_fields(self, storage):
         """Test load_tokens returns None when required fields are missing."""
-        token_json = json.dumps({
-            "access_token": "token",
-            # missing other required fields
-        })
+        token_json = json.dumps(
+            {
+                "access_token": "token",
+                # missing other required fields
+            }
+        )
 
-        with patch('secure_token_storage.keyring.get_password') as mock_get:
+        with patch("secure_token_storage.keyring.get_password") as mock_get:
             mock_get.return_value = token_json
 
             loaded_data = storage.load_tokens()
@@ -269,7 +277,7 @@ class TestKeyringTokenStorage:
 
     def test_load_tokens_keyring_exception(self, storage):
         """Test load_tokens returns None when keyring raises exception."""
-        with patch('secure_token_storage.keyring.get_password') as mock_get:
+        with patch("secure_token_storage.keyring.get_password") as mock_get:
             mock_get.side_effect = Exception("Keyring error")
 
             loaded_data = storage.load_tokens()
@@ -278,15 +286,15 @@ class TestKeyringTokenStorage:
 
     def test_delete_tokens_success(self, storage):
         """Test deleting tokens from keyring successfully."""
-        with patch('secure_token_storage.keyring.delete_password') as mock_delete:
+        with patch("secure_token_storage.keyring.delete_password") as mock_delete:
             storage.delete_tokens()
 
             mock_delete.assert_called_once_with(KEYRING_SERVICE, KEYRING_USERNAME)
 
     def test_delete_tokens_no_password_to_delete(self, storage):
         """Test delete_tokens handles PasswordDeleteError gracefully."""
-        with patch('secure_token_storage.keyring.delete_password') as mock_delete:
-            with patch('secure_token_storage.keyring.errors.PasswordDeleteError', Exception):
+        with patch("secure_token_storage.keyring.delete_password") as mock_delete:
+            with patch("secure_token_storage.keyring.errors.PasswordDeleteError", Exception):
                 mock_delete.side_effect = Exception("Password not found")
 
                 storage.delete_tokens()
@@ -295,7 +303,7 @@ class TestKeyringTokenStorage:
 
     def test_delete_tokens_general_exception(self, storage):
         """Test delete_tokens handles general exceptions gracefully."""
-        with patch('secure_token_storage.keyring.delete_password') as mock_delete:
+        with patch("secure_token_storage.keyring.delete_password") as mock_delete:
             mock_delete.side_effect = RuntimeError("Unexpected error")
 
             storage.delete_tokens()
@@ -304,10 +312,11 @@ class TestKeyringTokenStorage:
 
     def test_is_available_success(self, storage):
         """Test is_available returns True when keyring works."""
-        with patch('secure_token_storage.keyring.set_password') as mock_set, \
-             patch('secure_token_storage.keyring.get_password') as mock_get, \
-             patch('secure_token_storage.keyring.delete_password') as mock_delete:
-
+        with (
+            patch("secure_token_storage.keyring.set_password") as mock_set,
+            patch("secure_token_storage.keyring.get_password") as mock_get,
+            patch("secure_token_storage.keyring.delete_password") as mock_delete,
+        ):
             mock_get.return_value = "test"
 
             result = storage.is_available()
@@ -319,7 +328,7 @@ class TestKeyringTokenStorage:
 
     def test_is_available_keyring_fails(self, storage):
         """Test is_available returns False when keyring fails."""
-        with patch('secure_token_storage.keyring.set_password') as mock_set:
+        with patch("secure_token_storage.keyring.set_password") as mock_set:
             mock_set.side_effect = Exception("Keyring not available")
 
             result = storage.is_available()
@@ -328,10 +337,11 @@ class TestKeyringTokenStorage:
 
     def test_is_available_test_value_mismatch(self, storage):
         """Test is_available returns False when test value doesn't match."""
-        with patch('secure_token_storage.keyring.set_password'), \
-             patch('secure_token_storage.keyring.get_password') as mock_get, \
-             patch('secure_token_storage.keyring.delete_password'):
-
+        with (
+            patch("secure_token_storage.keyring.set_password"),
+            patch("secure_token_storage.keyring.get_password") as mock_get,
+            patch("secure_token_storage.keyring.delete_password"),
+        ):
             mock_get.return_value = "wrong_value"
 
             result = storage.is_available()
@@ -342,6 +352,7 @@ class TestKeyringTokenStorage:
 # ==============================================================================
 # EncryptedFileTokenStorage Tests
 # ==============================================================================
+
 
 class TestEncryptedFileTokenStorage:
     """Test suite for EncryptedFileTokenStorage."""
@@ -373,20 +384,20 @@ class TestEncryptedFileTokenStorage:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     def test_init_creates_directory(self, temp_dir):
         """Test initialization creates storage directory."""
         storage_dir = temp_dir / "new_storage"
 
-        with patch('secure_token_storage.ENCRYPTED_FILE_DIR', storage_dir):
+        with patch("secure_token_storage.ENCRYPTED_FILE_DIR", storage_dir):
             _ = EncryptedFileTokenStorage()
 
             assert storage_dir.exists()
             # Check permissions (on Unix-like systems)
-            if os.name != 'nt':
-                assert oct(storage_dir.stat().st_mode)[-3:] == '700'
+            if os.name != "nt":
+                assert oct(storage_dir.stat().st_mode)[-3:] == "700"
 
     def test_get_encryption_key_creates_new_salt(self, storage, temp_dir):
         """Test encryption key generation creates new salt file."""
@@ -397,8 +408,8 @@ class TestEncryptedFileTokenStorage:
         assert storage.salt_path.exists()
         assert len(key) > 0
         # Check salt file permissions
-        if os.name != 'nt':
-            assert oct(storage.salt_path.stat().st_mode)[-3:] == '600'
+        if os.name != "nt":
+            assert oct(storage.salt_path.stat().st_mode)[-3:] == "600"
 
     def test_get_encryption_key_reuses_existing_salt(self, storage, temp_dir):
         """Test encryption key generation reuses existing salt."""
@@ -421,7 +432,7 @@ class TestEncryptedFileTokenStorage:
 
     def test_get_encryption_key_handles_uuid_exception(self, storage, temp_dir):
         """Test encryption key generation handles uuid.getnode() failure."""
-        with patch('secure_token_storage.uuid.getnode') as mock_getnode:
+        with patch("secure_token_storage.uuid.getnode") as mock_getnode:
             mock_getnode.side_effect = Exception("UUID error")
 
             key = storage._get_encryption_key()
@@ -434,8 +445,8 @@ class TestEncryptedFileTokenStorage:
 
         assert storage.file_path.exists()
         # Check file permissions
-        if os.name != 'nt':
-            assert oct(storage.file_path.stat().st_mode)[-3:] == '600'
+        if os.name != "nt":
+            assert oct(storage.file_path.stat().st_mode)[-3:] == "600"
 
         # Verify file is encrypted (not plain JSON)
         encrypted_content = storage.file_path.read_bytes()
@@ -449,7 +460,7 @@ class TestEncryptedFileTokenStorage:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         storage.save_tokens(token_data)
@@ -468,7 +479,7 @@ class TestEncryptedFileTokenStorage:
 
     def test_save_tokens_encryption_failure(self, storage, token_data):
         """Test save_tokens raises exception on encryption failure."""
-        with patch.object(storage, '_get_encryption_key') as mock_key:
+        with patch.object(storage, "_get_encryption_key") as mock_key:
             mock_key.side_effect = Exception("Encryption error")
 
             with pytest.raises(Exception, match="Encryption error"):
@@ -533,14 +544,14 @@ class TestEncryptedFileTokenStorage:
             "refresh_token": "refresh",
             "client_id": "client",
             "client_secret": "secret",
-            "expires_at": time.time() + 3600
+            "expires_at": time.time() + 3600,
             # created_at missing
         }
         fernet = Fernet(storage._get_encryption_key())
         encrypted_data = fernet.encrypt(json.dumps(token_dict).encode())
         storage.file_path.write_bytes(encrypted_data)
 
-        with patch('secure_token_storage.time.time') as mock_time:
+        with patch("secure_token_storage.time.time") as mock_time:
             mock_time.return_value = 1234567890.0
 
             loaded_data = storage.load_tokens()
@@ -578,7 +589,7 @@ class TestEncryptedFileTokenStorage:
         """Test delete_tokens handles permission errors gracefully."""
         storage.save_tokens(token_data)
 
-        with patch.object(Path, 'unlink') as mock_unlink:
+        with patch.object(Path, "unlink") as mock_unlink:
             mock_unlink.side_effect = PermissionError("Permission denied")
 
             storage.delete_tokens()
@@ -610,19 +621,20 @@ class TestEncryptedFileTokenStorage:
 # get_storage_backend() Tests
 # ==============================================================================
 
+
 class TestGetStorageBackend:
     """Test suite for get_storage_backend() function."""
 
     def test_returns_keyring_when_available(self):
         """Test get_storage_backend returns KeyringTokenStorage when available."""
-        with patch.object(KeyringTokenStorage, 'is_available', return_value=True):
+        with patch.object(KeyringTokenStorage, "is_available", return_value=True):
             backend = get_storage_backend()
 
             assert isinstance(backend, KeyringTokenStorage)
 
     def test_returns_encrypted_file_when_keyring_unavailable(self):
         """Test get_storage_backend returns EncryptedFileTokenStorage as fallback."""
-        with patch.object(KeyringTokenStorage, 'is_available', return_value=False):
+        with patch.object(KeyringTokenStorage, "is_available", return_value=False):
             backend = get_storage_backend()
 
             assert isinstance(backend, EncryptedFileTokenStorage)
@@ -632,15 +644,15 @@ class TestGetStorageBackend:
         backend = get_storage_backend()
 
         assert isinstance(backend, SecureTokenStorage)
-        assert hasattr(backend, 'save_tokens')
-        assert hasattr(backend, 'load_tokens')
-        assert hasattr(backend, 'delete_tokens')
-        assert hasattr(backend, 'is_available')
+        assert hasattr(backend, "save_tokens")
+        assert hasattr(backend, "load_tokens")
+        assert hasattr(backend, "delete_tokens")
+        assert hasattr(backend, "is_available")
 
     def test_backend_selection_logs_correctly(self):
         """Test get_storage_backend logs the selected backend."""
-        with patch.object(KeyringTokenStorage, 'is_available', return_value=True):
-            with patch('secure_token_storage.logger.info') as mock_log:
+        with patch.object(KeyringTokenStorage, "is_available", return_value=True):
+            with patch("secure_token_storage.logger.info") as mock_log:
                 backend = get_storage_backend()
 
                 assert isinstance(backend, KeyringTokenStorage)
@@ -651,6 +663,7 @@ class TestGetStorageBackend:
 # ==============================================================================
 # Integration Tests
 # ==============================================================================
+
 
 class TestStorageIntegration:
     """Integration tests for storage backends."""
@@ -676,7 +689,7 @@ class TestStorageIntegration:
             client_id="client1",
             client_secret="secret1",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
         token_data2 = TokenData(
             access_token="token2",
@@ -684,7 +697,7 @@ class TestStorageIntegration:
             client_id="client2",
             client_secret="secret2",
             expires_at=time.time() + 7200,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         storage.save_tokens(token_data1)
@@ -708,7 +721,7 @@ class TestStorageIntegration:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         storage.save_tokens(token_data)
@@ -731,6 +744,7 @@ class TestStorageIntegration:
 # Edge Cases and Boundary Conditions
 # ==============================================================================
 
+
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
@@ -742,7 +756,7 @@ class TestEdgeCases:
             client_id="",
             client_secret="",
             expires_at=None,
-            created_at=0.0
+            created_at=0.0,
         )
 
         assert token_data.access_token == ""
@@ -758,7 +772,7 @@ class TestEdgeCases:
             client_id=long_string,
             client_secret=long_string,
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         assert len(token_data.access_token) == 10000
@@ -773,7 +787,7 @@ class TestEdgeCases:
             client_id=special_string,
             client_secret=special_string,
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         assert token_data.access_token == special_string
@@ -788,7 +802,7 @@ class TestEdgeCases:
             client_id=unicode_string,
             client_secret=unicode_string,
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         assert token_data.access_token == unicode_string
@@ -801,7 +815,7 @@ class TestEdgeCases:
             client_id="client",
             client_secret="secret",
             expires_at=-1000.0,
-            created_at=-2000.0
+            created_at=-2000.0,
         )
 
         assert token_data.expires_at == -1000.0
@@ -817,7 +831,7 @@ class TestEdgeCases:
             client_id="client",
             client_secret="secret",
             expires_at=large_timestamp,
-            created_at=large_timestamp
+            created_at=large_timestamp,
         )
 
         assert token_data.expires_at == large_timestamp
@@ -842,7 +856,7 @@ class TestEdgeCases:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         storage.save_tokens(token_data)
@@ -860,14 +874,16 @@ class TestEdgeCases:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
-        with patch('secure_token_storage.keyring.set_password') as mock_set, \
-             patch('secure_token_storage.keyring.get_password') as mock_get:
-
+        with (
+            patch("secure_token_storage.keyring.set_password") as mock_set,
+            patch("secure_token_storage.keyring.get_password") as mock_get,
+        ):
             # Capture what was saved
             saved_data = None
+
             def capture_save(_service, _username, data):
                 nonlocal saved_data
                 saved_data = data

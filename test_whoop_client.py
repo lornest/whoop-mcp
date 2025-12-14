@@ -29,13 +29,13 @@ class TestWhoopOAuth2Client:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     @pytest.fixture
     def mock_storage(self):
         """Fixture providing mocked storage backend."""
-        with patch('whoop_client.get_storage_backend') as mock_get_storage:
+        with patch("whoop_client.get_storage_backend") as mock_get_storage:
             mock_storage_instance = Mock()
             mock_get_storage.return_value = mock_storage_instance
             yield mock_storage_instance
@@ -43,7 +43,7 @@ class TestWhoopOAuth2Client:
     @pytest.fixture
     def mock_oauth_client(self, token_data):
         """Fixture providing mocked AsyncOAuth2Client."""
-        with patch('whoop_client.AsyncOAuth2Client') as mock_oauth:
+        with patch("whoop_client.AsyncOAuth2Client") as mock_oauth:
             mock_instance = AsyncMock()
             # Set client_id and client_secret on the mock instance
             mock_instance.client_id = token_data.client_id
@@ -52,7 +52,10 @@ class TestWhoopOAuth2Client:
             yield mock_oauth
 
     def test_init_creates_oauth_client_with_correct_parameters(
-        self, token_data, mock_storage, mock_oauth_client  # type: ignore[arg-unused]
+        self,
+        token_data,
+        mock_storage,
+        mock_oauth_client,  # type: ignore[arg-unused]
     ):
         """Test initialization creates OAuth client with correct parameters."""
         _ = mock_storage  # Fixture needed for side effect
@@ -61,12 +64,12 @@ class TestWhoopOAuth2Client:
         mock_oauth_client.assert_called_once()
         call_kwargs = mock_oauth_client.call_args[1]
 
-        assert call_kwargs['client_id'] == token_data.client_id
-        assert call_kwargs['client_secret'] == token_data.client_secret
-        assert call_kwargs['token_endpoint'] == TOKEN_URL
-        assert call_kwargs['token_endpoint_auth_method'] == 'client_secret_post'
-        assert 'token' in call_kwargs
-        assert 'update_token' in call_kwargs
+        assert call_kwargs["client_id"] == token_data.client_id
+        assert call_kwargs["client_secret"] == token_data.client_secret
+        assert call_kwargs["token_endpoint"] == TOKEN_URL
+        assert call_kwargs["token_endpoint_auth_method"] == "client_secret_post"
+        assert "token" in call_kwargs
+        assert "update_token" in call_kwargs
 
     def test_init_stores_storage_backend(self, token_data, mock_storage, mock_oauth_client):
         """Test initialization stores storage backend reference."""
@@ -83,10 +86,10 @@ class TestWhoopOAuth2Client:
 
         token_dict = client._create_token_dict(token_data)
 
-        assert token_dict['access_token'] == token_data.access_token
-        assert token_dict['refresh_token'] == token_data.refresh_token
-        assert token_dict['token_type'] == 'Bearer'
-        assert token_dict['expires_at'] == token_data.expires_at
+        assert token_dict["access_token"] == token_data.access_token
+        assert token_dict["refresh_token"] == token_data.refresh_token
+        assert token_dict["token_type"] == "Bearer"
+        assert token_dict["expires_at"] == token_data.expires_at
 
     def test_create_token_dict_with_none_expires_at(self, mock_storage, mock_oauth_client):
         """Test _create_token_dict defaults expires_at when None."""
@@ -98,14 +101,14 @@ class TestWhoopOAuth2Client:
             client_id="client",
             client_secret="secret",
             expires_at=None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
-        with patch('whoop_client.time.time', return_value=1000.0):
+        with patch("whoop_client.time.time", return_value=1000.0):
             client = WhoopOAuth2Client(token_data)
             token_dict = client._create_token_dict(token_data)
 
-        assert token_dict['expires_at'] == 1000.0 + 3600
+        assert token_dict["expires_at"] == 1000.0 + 3600
 
     def test_create_token_dict_preserves_existing_expires_at(
         self, token_data, mock_storage, mock_oauth_client
@@ -118,7 +121,7 @@ class TestWhoopOAuth2Client:
         client = WhoopOAuth2Client(token_data)
         token_dict = client._create_token_dict(token_data)
 
-        assert token_dict['expires_at'] == expected_expires
+        assert token_dict["expires_at"] == expected_expires
 
     @pytest.mark.asyncio
     async def test_save_token_callback_creates_token_data_correctly(
@@ -134,7 +137,7 @@ class TestWhoopOAuth2Client:
             "expires_at": time.time() + 7200,
         }
 
-        with patch('whoop_client.time.time', return_value=2000.0):
+        with patch("whoop_client.time.time", return_value=2000.0):
             await client._save_token_callback(new_token)
 
         mock_storage.save_tokens.assert_called_once()
@@ -240,14 +243,14 @@ class TestWhoopAPIClient:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     @pytest.fixture
     def mock_oauth_client(self, token_data):
         """Fixture providing mocked WhoopOAuth2Client."""
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client'):
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client"):
                 oauth_client = WhoopOAuth2Client(token_data)
                 oauth_client.oauth_client = AsyncMock()
                 return oauth_client
@@ -342,9 +345,7 @@ class TestWhoopAPIClient:
         """Test _make_request re-raises other HTTP status errors."""
         mock_response = Mock()
         mock_response.status_code = 500
-        error = httpx.HTTPStatusError(
-            "Server error", request=Mock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Server error", request=Mock(), response=mock_response)
         mock_response.raise_for_status = Mock(side_effect=error)
 
         mock_oauth_client.oauth_client.request = AsyncMock(return_value=mock_response)
@@ -379,10 +380,10 @@ class TestWhoopAPIClient:
             "user_id": 12345,
             "height_meter": 1.75,
             "weight_kilogram": 70.5,
-            "max_heart_rate": 190
+            "max_heart_rate": 190,
         }
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value=expected_data)):
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value=expected_data)):
             result = await api_client.get_user_profile()
 
         assert result == expected_data
@@ -390,7 +391,7 @@ class TestWhoopAPIClient:
     @pytest.mark.asyncio
     async def test_get_user_profile_calls_correct_endpoint(self, api_client):
         """Test get_user_profile calls correct API endpoint."""
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_user_profile()
 
         mock_req.assert_called_once_with(
@@ -402,7 +403,9 @@ class TestWhoopAPIClient:
         """Test get_cycles with default parameters."""
         expected_data = {"records": [{"id": 1}, {"id": 2}]}
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value=expected_data)) as mock_req:
+        with patch.object(
+            api_client, "_make_request", new=AsyncMock(return_value=expected_data)
+        ) as mock_req:
             result = await api_client.get_cycles()
 
         assert result == expected_data
@@ -416,7 +419,7 @@ class TestWhoopAPIClient:
         start_date = "2024-01-01T00:00:00.000Z"
         end_date = "2024-01-31T23:59:59.999Z"
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(start_date=start_date, end_date=end_date)
 
         expected_params = {"limit": 25, "start": start_date, "end": end_date}
@@ -427,7 +430,7 @@ class TestWhoopAPIClient:
     @pytest.mark.asyncio
     async def test_get_cycles_with_custom_limit(self, api_client):
         """Test get_cycles with custom limit."""
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(limit=50)
 
         mock_req.assert_called_once_with(
@@ -439,7 +442,7 @@ class TestWhoopAPIClient:
         """Test get_cycles with only start date."""
         start_date = "2024-01-01T00:00:00.000Z"
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(start_date=start_date)
 
         expected_params = {"limit": 25, "start": start_date}
@@ -452,7 +455,7 @@ class TestWhoopAPIClient:
         """Test get_cycles with only end date."""
         end_date = "2024-01-31T23:59:59.999Z"
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(end_date=end_date)
 
         expected_params = {"limit": 25, "end": end_date}
@@ -465,7 +468,9 @@ class TestWhoopAPIClient:
         """Test get_recovery with default parameters."""
         expected_data = {"records": [{"recovery_score": 85}]}
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value=expected_data)) as mock_req:
+        with patch.object(
+            api_client, "_make_request", new=AsyncMock(return_value=expected_data)
+        ) as mock_req:
             result = await api_client.get_recovery()
 
         assert result == expected_data
@@ -479,7 +484,7 @@ class TestWhoopAPIClient:
         start_date = "2024-01-01T00:00:00.000Z"
         end_date = "2024-01-31T23:59:59.999Z"
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_recovery(start_date=start_date, end_date=end_date, limit=10)
 
         expected_params = {"limit": 10, "start": start_date, "end": end_date}
@@ -492,7 +497,9 @@ class TestWhoopAPIClient:
         """Test get_sleep with default parameters."""
         expected_data = {"records": [{"sleep_id": 1, "duration": 28800}]}
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value=expected_data)) as mock_req:
+        with patch.object(
+            api_client, "_make_request", new=AsyncMock(return_value=expected_data)
+        ) as mock_req:
             result = await api_client.get_sleep()
 
         assert result == expected_data
@@ -506,7 +513,7 @@ class TestWhoopAPIClient:
         start_date = "2024-01-01T00:00:00.000Z"
         end_date = "2024-01-31T23:59:59.999Z"
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_sleep(start_date=start_date, end_date=end_date, limit=15)
 
         expected_params = {"limit": 15, "start": start_date, "end": end_date}
@@ -519,7 +526,9 @@ class TestWhoopAPIClient:
         """Test get_workouts with default parameters."""
         expected_data = {"records": [{"workout_id": 1, "sport_id": 1}]}
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value=expected_data)) as mock_req:
+        with patch.object(
+            api_client, "_make_request", new=AsyncMock(return_value=expected_data)
+        ) as mock_req:
             result = await api_client.get_workouts()
 
         assert result == expected_data
@@ -533,7 +542,7 @@ class TestWhoopAPIClient:
         start_date = "2024-01-01T00:00:00.000Z"
         end_date = "2024-01-31T23:59:59.999Z"
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_workouts(start_date=start_date, end_date=end_date, limit=100)
 
         expected_params = {"limit": 100, "start": start_date, "end": end_date}
@@ -559,14 +568,14 @@ class TestErrorHandlingIntegration:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     @pytest.fixture
     def mock_oauth_client(self, token_data):
         """Fixture providing mocked WhoopOAuth2Client."""
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client'):
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client"):
                 oauth_client = WhoopOAuth2Client(token_data)
                 oauth_client.oauth_client = AsyncMock()
                 return oauth_client
@@ -597,9 +606,7 @@ class TestErrorHandlingIntegration:
         mock_response = Mock()
         mock_response.status_code = 429
         mock_response.raise_for_status = Mock(
-            side_effect=httpx.HTTPStatusError(
-                "Rate limit", request=Mock(), response=mock_response
-            )
+            side_effect=httpx.HTTPStatusError("Rate limit", request=Mock(), response=mock_response)
         )
         mock_oauth_client.oauth_client.request = AsyncMock(return_value=mock_response)
 
@@ -621,9 +628,7 @@ class TestErrorHandlingIntegration:
         """Test 500 server error handling on get_sleep."""
         mock_response = Mock()
         mock_response.status_code = 500
-        error = httpx.HTTPStatusError(
-            "Server error", request=Mock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Server error", request=Mock(), response=mock_response)
         mock_response.raise_for_status = Mock(side_effect=error)
         mock_oauth_client.oauth_client.request = AsyncMock(return_value=mock_response)
 
@@ -635,9 +640,7 @@ class TestErrorHandlingIntegration:
         """Test 403 forbidden error handling on get_workouts."""
         mock_response = Mock()
         mock_response.status_code = 403
-        error = httpx.HTTPStatusError(
-            "Forbidden", request=Mock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Forbidden", request=Mock(), response=mock_response)
         mock_response.raise_for_status = Mock(side_effect=error)
         mock_oauth_client.oauth_client.request = AsyncMock(return_value=mock_response)
 
@@ -662,14 +665,14 @@ class TestEdgeCases:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     @pytest.fixture
     def mock_oauth_client(self, token_data):
         """Fixture providing mocked WhoopOAuth2Client."""
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client'):
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client"):
                 oauth_client = WhoopOAuth2Client(token_data)
                 oauth_client.oauth_client = AsyncMock()
                 return oauth_client
@@ -682,7 +685,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_get_cycles_with_limit_zero(self, api_client):
         """Test get_cycles with limit of zero."""
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(limit=0)
 
         mock_req.assert_called_once_with(
@@ -692,7 +695,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_get_cycles_with_very_large_limit(self, api_client):
         """Test get_cycles with very large limit."""
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(limit=10000)
 
         mock_req.assert_called_once_with(
@@ -702,7 +705,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_get_cycles_with_empty_string_dates(self, api_client):
         """Test get_cycles handles empty string dates."""
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
             await api_client.get_cycles(start_date="", end_date="")
 
         # Empty strings are falsy, so they should not be included
@@ -750,11 +753,11 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_save_token_callback_with_empty_token_dict(self, token_data):
         """Test _save_token_callback handles empty token dictionary."""
-        with patch('whoop_client.get_storage_backend') as mock_get_storage:
+        with patch("whoop_client.get_storage_backend") as mock_get_storage:
             mock_storage = Mock()
             mock_get_storage.return_value = mock_storage
 
-            with patch('whoop_client.AsyncOAuth2Client') as mock_oauth:
+            with patch("whoop_client.AsyncOAuth2Client") as mock_oauth:
                 mock_oauth_instance = AsyncMock()
                 mock_oauth_instance.client_id = token_data.client_id
                 mock_oauth_instance.client_secret = token_data.client_secret
@@ -776,25 +779,25 @@ class TestEdgeCases:
         """Test _create_token_dict uses default when expires_at is 0 (falsy)."""
         token_data.expires_at = 0
 
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client'):
-                with patch('whoop_client.time.time', return_value=1000.0):
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client"):
+                with patch("whoop_client.time.time", return_value=1000.0):
                     client = WhoopOAuth2Client(token_data)
                     token_dict = client._create_token_dict(token_data)
 
         # 0 is falsy, so it should use the default (current time + 3600)
-        assert token_dict['expires_at'] == 1000.0 + 3600
+        assert token_dict["expires_at"] == 1000.0 + 3600
 
     def test_create_token_dict_with_negative_expires_at(self, token_data):
         """Test _create_token_dict handles negative expires_at."""
         token_data.expires_at = -1000.0
 
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client'):
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client"):
                 client = WhoopOAuth2Client(token_data)
                 token_dict = client._create_token_dict(token_data)
 
-        assert token_dict['expires_at'] == -1000.0
+        assert token_dict["expires_at"] == -1000.0
 
     @pytest.mark.asyncio
     async def test_get_recovery_with_all_parameters(self, api_client):
@@ -803,12 +806,8 @@ class TestEdgeCases:
         end_date = "2024-01-31T23:59:59.999Z"
         limit = 50
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
-            await api_client.get_recovery(
-                start_date=start_date,
-                end_date=end_date,
-                limit=limit
-            )
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
+            await api_client.get_recovery(start_date=start_date, end_date=end_date, limit=limit)
 
         expected_params = {"limit": 50, "start": start_date, "end": end_date}
         mock_req.assert_called_once_with(
@@ -822,12 +821,8 @@ class TestEdgeCases:
         end_date = "2024-01-31T23:59:59.999Z"
         limit = 75
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
-            await api_client.get_sleep(
-                start_date=start_date,
-                end_date=end_date,
-                limit=limit
-            )
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
+            await api_client.get_sleep(start_date=start_date, end_date=end_date, limit=limit)
 
         expected_params = {"limit": 75, "start": start_date, "end": end_date}
         mock_req.assert_called_once_with(
@@ -841,12 +836,8 @@ class TestEdgeCases:
         end_date = "2024-01-31T23:59:59.999Z"
         limit = 200
 
-        with patch.object(api_client, '_make_request', new=AsyncMock(return_value={})) as mock_req:
-            await api_client.get_workouts(
-                start_date=start_date,
-                end_date=end_date,
-                limit=limit
-            )
+        with patch.object(api_client, "_make_request", new=AsyncMock(return_value={})) as mock_req:
+            await api_client.get_workouts(start_date=start_date, end_date=end_date, limit=limit)
 
         expected_params = {"limit": 200, "start": start_date, "end": end_date}
         mock_req.assert_called_once_with(
@@ -871,17 +862,17 @@ class TestTokenManagementIntegration:
             client_id="test_client_id",
             client_secret="test_client_secret",
             expires_at=time.time() + 3600,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
     @pytest.mark.asyncio
     async def test_token_refresh_updates_storage(self, token_data):
         """Test that token refresh properly updates storage."""
-        with patch('whoop_client.get_storage_backend') as mock_get_storage:
+        with patch("whoop_client.get_storage_backend") as mock_get_storage:
             mock_storage = Mock()
             mock_get_storage.return_value = mock_storage
 
-            with patch('whoop_client.AsyncOAuth2Client') as mock_oauth:
+            with patch("whoop_client.AsyncOAuth2Client") as mock_oauth:
                 mock_oauth_instance = AsyncMock()
                 mock_oauth_instance.client_id = token_data.client_id
                 mock_oauth_instance.client_secret = token_data.client_secret
@@ -908,8 +899,8 @@ class TestTokenManagementIntegration:
     @pytest.mark.asyncio
     async def test_oauth_client_stores_client_credentials(self, token_data):
         """Test OAuth client stores client credentials for token refresh."""
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client') as mock_oauth:
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client") as mock_oauth:
                 mock_oauth_instance = AsyncMock()
                 mock_oauth_instance.client_id = token_data.client_id
                 mock_oauth_instance.client_secret = token_data.client_secret
@@ -923,19 +914,19 @@ class TestTokenManagementIntegration:
 
     def test_oauth_client_configures_whoop_specific_auth_method(self, token_data):
         """Test OAuth client uses Whoop-required auth method."""
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client') as mock_oauth:
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client") as mock_oauth:
                 WhoopOAuth2Client(token_data)
 
         call_kwargs = mock_oauth.call_args[1]
-        assert call_kwargs['token_endpoint_auth_method'] == 'client_secret_post'
+        assert call_kwargs["token_endpoint_auth_method"] == "client_secret_post"
 
     def test_oauth_client_configures_correct_token_endpoint(self, token_data):
         """Test OAuth client uses correct token endpoint."""
-        with patch('whoop_client.get_storage_backend'):
-            with patch('whoop_client.AsyncOAuth2Client') as mock_oauth:
+        with patch("whoop_client.get_storage_backend"):
+            with patch("whoop_client.AsyncOAuth2Client") as mock_oauth:
                 WhoopOAuth2Client(token_data)
 
         call_kwargs = mock_oauth.call_args[1]
-        assert call_kwargs['token_endpoint'] == TOKEN_URL
+        assert call_kwargs["token_endpoint"] == TOKEN_URL
         assert TOKEN_URL == f"{API_BASE_URL}/oauth/oauth2/token"

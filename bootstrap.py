@@ -64,7 +64,8 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 self.send_response(400)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
-                self.wfile.write(f"""
+                self.wfile.write(
+                    f"""
                     <html>
                     <head><title>Authorization Failed</title></head>
                     <body>
@@ -74,7 +75,8 @@ class CallbackHandler(BaseHTTPRequestHandler):
                         <p>You can close this window.</p>
                     </body>
                     </html>
-                """.encode())
+                """.encode()
+                )
                 return
 
             returned_state = params.get("state", [None])[0]
@@ -245,7 +247,7 @@ def main():
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
             expires_at=time.time() + expires_in if expires_in else None,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         storage = get_storage_backend()
@@ -256,15 +258,7 @@ def main():
         script_dir = Path(__file__).parent.resolve()
 
         mcp_config = {
-            "whoop": {
-                "command": "uv",
-                "args": [
-                    "--directory",
-                    str(script_dir),
-                    "run",
-                    "main.py"
-                ]
-            }
+            "whoop": {"command": "uv", "args": ["--directory", str(script_dir), "run", "main.py"]}
         }
 
         print("=" * 80)
@@ -283,7 +277,9 @@ def main():
         print()
         print("=" * 80)
         print()
-        print("✅ Once you have added the configuration to your MCP client, restart Claude Code to use your WHOOP MCP server.")
+        print(
+            "✅ Once you have added the configuration to your MCP client, restart Claude Code to use your WHOOP MCP server."
+        )
 
     except Exception as e:
         print(f"❌ Failed to exchange code for token: {e}")
