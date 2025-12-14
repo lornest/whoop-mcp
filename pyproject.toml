@@ -25,6 +25,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+fix = true
 
 [tool.ruff.lint]
 select = [
@@ -37,5 +38,4 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)
-    "N802",  # function name should be lowercase (conflicts with HTTP handler methods like do_GET)
 ]
